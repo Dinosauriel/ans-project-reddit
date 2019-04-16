@@ -7,7 +7,6 @@ relevant_fields = [
 	"id",
 	"name",
 	"created_utc",
-	"body",
 	"display_name",
 	"subscribers"
 ]
@@ -37,7 +36,7 @@ cursor.execute("CREATE TABLE subreddits ( \
 	subscribers INT \
 	) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci")
 
-insertion_sql = "INSERT INTO comments (" + ", ".join(relevant_fields) + ") VALUES \
+insertion_sql = "INSERT INTO subreddits (" + ", ".join(relevant_fields) + ") VALUES \
 	(%(id)s, %(name)s, %(created_utc)s, %(display_name)s, \
 	%(subscribers)s)"
 
