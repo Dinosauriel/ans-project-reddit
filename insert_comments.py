@@ -40,7 +40,11 @@ cursor.execute("CREATE TABLE comments ( \
 	subreddit_id VARCHAR(15), \
 	body TEXT, \
 	link_id VARCHAR(15), \
-	parent_id VARCHAR(15) \
+	parent_id VARCHAR(15), \
+	INDEX(author_fullname), \
+	INDEX(created_utc), \
+	INDEX(link_id), \
+	INDEX(parent_id) \
 	) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci")
 
 insertion_sql = "INSERT INTO comments (" + ", ".join(relevant_fields) + ") VALUES \
