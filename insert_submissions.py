@@ -38,16 +38,19 @@ cursor.execute("DROP TABLE IF EXISTS submissions")
 cursor.execute("CREATE TABLE submissions ( \
 	id VARCHAR(15) PRIMARY KEY, \
 	author VARCHAR(255), \
-	author_fullname VARCHAR(15) INDEX, \
+	author_fullname VARCHAR(15), \
 	author_created_utc INT, \
 	created_utc INT, \
 	subreddit VARCHAR(63), \
-	subreddit_id VARCHAR(15) INDEX, \
+	subreddit_id VARCHAR(15), \
 	title TEXT, \
 	num_crossposts INT, \
 	num_comments INT, \
 	selftext MEDIUMTEXT, \
-	crosspost_parent VARCHAR(15) INDEX \
+	crosspost_parent VARCHAR(15), \
+	INDEX (author_fullname), \
+	INDEX (subreddit_id), \
+	INDEX (crosspost_parent), \
 	) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci")
 
 insertion_sql = "INSERT INTO submissions (" + ", ".join(relevant_fields) + ") VALUES \
