@@ -14,7 +14,8 @@ relevant_fields = [
 	"title",
 	"num_crossposts",
 	"num_comments",
-	"selftext"
+	"selftext",
+	"crosspost_parent"
 ]
 
 source_file = open("/mnt/6TB-RED/ansproj/raw_data/RSUBMISSIONS_2019-01.json")
@@ -45,13 +46,14 @@ cursor.execute("CREATE TABLE submissions ( \
 	title TEXT, \
 	num_crossposts INT, \
 	num_comments INT, \
-	selftext MEDIUMTEXT \
+	selftext MEDIUMTEXT, \
+	crosspost_parent VARCHAR(15) \
 	) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci")
 
 insertion_sql = "INSERT INTO submissions (" + ", ".join(relevant_fields) + ") VALUES \
 	(%(id)s, %(author)s, %(author_fullname)s, %(author_created_utc)s, \
 	%(created_utc)s, %(subreddit)s, %(subreddit_id)s, %(title)s, \
-	%(num_crossposts)s, %(num_comments)s, %(selftext)s)"
+	%(num_crossposts)s, %(num_comments)s, %(selftext)s, %(crosspost_parent)s)"
 #c = []
 #i = 0
 n = 0
@@ -62,10 +64,12 @@ for line in source_file:
 	comment = json.loads(line)
 	comment = {k:v for (k,v) in comment.items() if k in relevant_fields}
 	if "author_fullname" not in comment:
-		comment["author_fullname"] = "NULL"
+		comment["author_fullname"] = None
 	if "author_created_utc" not in comment:
-        	comment["author_created_utc"] = 0
-	
+		comment["author_created_utc"] = None
+	if "crosspost_parent" not in comment:
+		comment["crosspost_parent"] = None
+
 	cursor.execute(insertion_sql, comment)
 	#insert batches of 1000
 	#i += 1

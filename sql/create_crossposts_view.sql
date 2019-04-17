@@ -3,5 +3,5 @@ CREATE VIEW crossposts AS
 	(
 		SELECT (*)
 		FROM submissions
-		WHERE 
+		WHERE crosspost_parent IS NOT NULL
 	);
