@@ -50,7 +50,7 @@ cursor.execute("CREATE TABLE submissions ( \
 	crosspost_parent VARCHAR(15), \
 	INDEX (author_fullname), \
 	INDEX (subreddit_id), \
-	INDEX (crosspost_parent), \
+	INDEX (crosspost_parent) \
 	) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci")
 
 insertion_sql = "INSERT INTO submissions (" + ", ".join(relevant_fields) + ") VALUES \
