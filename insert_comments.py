@@ -2,6 +2,7 @@
 import mysql.connector
 import env_file
 import json
+import os
 
 relevant_fields = [
 	"id",
@@ -14,8 +15,6 @@ relevant_fields = [
 	"link_id",
 	"parent_id"
 ]
-
-source_file = open("/mnt/6TB-RED/ansproj/raw_data/RCOMMENTS_2019-01.json")
 
 env = env_file.get()
 
@@ -51,36 +50,26 @@ insertion_sql = "INSERT INTO comments (" + ", ".join(relevant_fields) + ") VALUE
 	(%(id)s, %(author)s, %(author_fullname)s, %(author_created_utc)s, \
 	%(created_utc)s, %(subreddit_id)s, %(body)s, %(link_id)s, \
 	%(parent_id)s)"
-#c = []
-#i = 0
-n = 0
-for line in source_file:
-	#if n < 4800000:
-	#	n += 1
-	#	continue
-	comment = json.loads(line)
-	comment = {k:v for (k,v) in comment.items() if k in relevant_fields}
-	if "author_fullname" not in comment:
-		comment["author_fullname"] = "NULL"
-	if "author_created_utc" not in comment:
-		comment["author_created_utc"] = 0
-	
-	cursor.execute(insertion_sql, comment)
-	#insert batches of 1000
-	#i += 1
-	#if i == 1000:
-	#	cursor.executemany(insertion_sql, c)
-	#	i = 0
-	#	c = []
-	n += 1
-	if (n % 100000 == 0):
-		db.commit()
-		print(n)
 
-#insert remaining
-#cursor.executemany(insertion_sql, c)
+source_files = os.scandir(env["COMM_JSON_DIR"])
+
+n = 0
+for file in source_files:
+	source_file = open(file.path)
+	for line in source_file:
+		comment = json.loads(line)
+		comment = {k:v for (k,v) in comment.items() if k in relevant_fields}
+		if "author_fullname" not in comment:
+			comment["author_fullname"] = "NULL"
+		if "author_created_utc" not in comment:
+			comment["author_created_utc"] = 0
+		
+		cursor.execute(insertion_sql, comment)
+		n += 1
+		if (n % 100000 == 0):
+			db.commit()
+			print(n)
+	source_file.close()
 
 db.commit()
-
 db.close()
-source_file.close()

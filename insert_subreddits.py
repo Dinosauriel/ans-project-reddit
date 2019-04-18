@@ -2,6 +2,7 @@
 import mysql.connector
 import env_file
 import json
+import os
 
 relevant_fields = [
 	"id",
@@ -10,8 +11,6 @@ relevant_fields = [
 	"display_name",
 	"subscribers"
 ]
-
-source_file = open("/mnt/6TB-RED/ansproj/raw_data/SUBREDDITS.json")
 
 env = env_file.get()
 
@@ -40,21 +39,22 @@ insertion_sql = "INSERT INTO subreddits (" + ", ".join(relevant_fields) + ") VAL
 	(%(id)s, %(name)s, %(created_utc)s, %(display_name)s, \
 	%(subscribers)s)"
 
+
+source_files = os.scandir(env["SUBR_JSON_DIR"])
+
 n = 0
-for line in source_file:
-	#if n < 4800000:
-	#	n += 1
-	#	continue
-	comment = json.loads(line)
-	comment = {k:v for (k,v) in comment.items() if k in relevant_fields}
-	
-	cursor.execute(insertion_sql, comment)
-	n += 1
-	if (n % 100000 == 0):
-		db.commit()
-		print(n)
+for file in source_files:
+	source_file = open(file.path)
+	for line in source_file:
+		comment = json.loads(line)
+		comment = {k:v for (k,v) in comment.items() if k in relevant_fields}
+		
+		cursor.execute(insertion_sql, comment)
+		n += 1
+		if (n % 100000 == 0):
+			db.commit()
+			print(n)
+	source_file.close()
 
 db.commit()
-
 db.close()
-source_file.close()
