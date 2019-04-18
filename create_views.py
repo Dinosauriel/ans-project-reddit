@@ -20,9 +20,7 @@ def execute_file(file):
 	stmt = open(file).readlines()
 	cursor.execute(stmt)
 
-execute_file("./sql/create_crossposts_view.sql")
-execute_file("./sql/create_comments_of_submission_function.sql")
-execute_file("./sql/create_mobilizations_view.sql")
+execute_file("./sql/create_views.sql")
 
 db.commit()
 db.close()
