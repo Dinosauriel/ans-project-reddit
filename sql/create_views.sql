@@ -25,11 +25,3 @@ BEGIN
 	SELECT * FROM comments WHERE link_id = subm_name;
 END//
 DELIMITER ;
-
-
-DROP VIEW IF EXISTS mobilizations;
-CREATE VIEW mobilizations AS
-	(
-		SELECT * FROM crossposts c
-		WHERE comments_of_submission(c.crosspost_parent)
-	);
