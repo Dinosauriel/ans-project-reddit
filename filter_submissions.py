@@ -13,7 +13,7 @@ db.set_charset_collation('utf8mb4', 'utf8mb4_general_ci')
 
 cursor = db.cursor()
 cursor.execute("DROP TABLE IF EXISTS reduced_submissions")
-cursor.execute("CREATE TABLE reduced_submissions LIKE submission")
+cursor.execute("CREATE TABLE reduced_submissions LIKE submissions")
 
 db.commit()
 
