@@ -41,27 +41,23 @@ def create_tmp_members(subreddit_a_name, subreddit_b_name, date, cursor):
 	cursor.execute('''
 		CREATE TABLE _tmp_members (author_fullname VARCHAR(15) PRIMARY KEY) AS
 		SELECT members_a.author_fullname FROM
-			(SELECT author_fullname
+			(SELECT DISTINCT author_fullname
 			FROM comments c
 			WHERE c.subreddit_id = "''' + subreddit_a_name + '''"
 			AND c.created_utc < ''' + str(date) + '''
-			AND c.created_utc >= ''' + str(date - (3600 * 24 * 30)) + '''
-			GROUP BY c.author_fullname) AS members_a
-		LEFT JOIN
-			(SELECT author_fullname
+			AND c.created_utc >= ''' + str(date - (3600 * 24 * 30)) + ''') AS members_a
+		WHERE members_a.author_fullname NOT IN
+			(SELECT DISTINCT author_fullname
 			FROM comments c
 			WHERE c.subreddit_id = "''' + subreddit_b_name + '''"
 			AND c.created_utc < ''' + str(date) + '''
-			AND c.created_utc >= ''' + str(date - (3600 * 24 * 30)) + '''
-			GROUP BY c.author_fullname) AS members_b USING (author_fullname)
-		WHERE members_b.author_fullname IS NULL
-		AND members_a.author_fullname IS NOT NULL
+			AND c.created_utc >= ''' + str(date - (3600 * 24 * 30)) + ''')
 		''')
 
-def create_tmp_commenters_before(submission_name, date, cursor):
-	cursor.execute("DROP TABLE IF EXISTS _tmp_commenters_before")
+def create_tmp_comments_before(submission_name, date, cursor):
+	cursor.execute("DROP TABLE IF EXISTS _tmp_comments_before")
 	cursor.execute('''
-		CREATE TABLE _tmp_commenters_before (author_fullname VARCHAR(15), INDEX(author_fullname)) AS
+		CREATE TABLE _tmp_comments_before (author_fullname VARCHAR(15), INDEX(author_fullname)) AS
 		SELECT author_fullname
 		FROM comments
 		WHERE link_id = "''' + submission_name + '''"
@@ -70,10 +66,10 @@ def create_tmp_commenters_before(submission_name, date, cursor):
 		AND author_fullname IS NOT NULL
 		''')
 
-def create_tmp_commenters_after(submission_name, date, cursor):
-	cursor.execute("DROP TABLE IF EXISTS _tmp_commenters_after")
+def create_tmp_comments_after(submission_name, date, cursor):
+	cursor.execute("DROP TABLE IF EXISTS _tmp_comments_after")
 	cursor.execute('''
-		CREATE TABLE _tmp_commenters_after (author_fullname VARCHAR(15), INDEX(author_fullname)) AS
+		CREATE TABLE _tmp_comments_after (author_fullname VARCHAR(15), INDEX(author_fullname)) AS
 		SELECT author_fullname
 		FROM comments
 		WHERE link_id = "''' + submission_name + '''"
@@ -85,52 +81,52 @@ def create_tmp_commenters_after(submission_name, date, cursor):
 print("fetching crossposts...")
 
 cursor.execute("SELECT id, author_fullname, created_utc, subreddit_id, crosspost_parent FROM crossposts")
+crossposts = cursor.fetchall()
 
 print("searching for mobilizations...")
 
 n = 0
 n_mob = 0
-for (src_id, src_author, src_created, src_subreddit_name, tgt_name) in cursor:
+for (src_id, src_author, src_created, src_subreddit_name, tgt_name) in crossposts:
 	n += 1
-	sub_cursor = db.cursor()
 
 	#fetch the target post
-	sub_cursor.execute("SELECT id, subreddit_id, author_fullname FROM submissions WHERE id = \"" + tgt_name[3:] + "\"")
-	tgt_submission = sub_cursor.fetchone()
+	cursor.execute("SELECT id, subreddit_id, author_fullname FROM submissions WHERE id = \"" + tgt_name[3:] + "\"")
+	tgt_submission = cursor.fetchone()
 
 	if tgt_submission is not None:
 		(tgt_id, tgt_subreddit_name, tgt_author) = tgt_submission
 
-		sub_cursor.execute("SELECT * FROM subreddits WHERE id = \"" + src_subreddit_name[3:] + "\"")
-		print("src subreddit: " + str(sub_cursor.fetchone()))
+		cursor.execute("SELECT * FROM subreddits WHERE id = \"" + src_subreddit_name[3:] + "\"")
+		print("src subreddit: " + str(cursor.fetchone()))
 
-		sub_cursor.execute("SELECT * FROM subreddits WHERE id = \"" + tgt_subreddit_name[3:] + "\"")
-		print("src subreddit: " + str(sub_cursor.fetchone()))
+		cursor.execute("SELECT * FROM subreddits WHERE id = \"" + tgt_subreddit_name[3:] + "\"")
+		print("tgt subreddit: " + str(cursor.fetchone()))
 
 		print("creating temporary tables...")
-		create_tmp_members(src_subreddit_name, tgt_subreddit_name, date_to_day(src_created), sub_cursor)
-		create_tmp_commenters_before(tgt_name, src_created, sub_cursor)
-		create_tmp_commenters_after(tgt_name, src_created, sub_cursor)
+		create_tmp_members(src_subreddit_name, tgt_subreddit_name, date_to_day(src_created), cursor)
+		create_tmp_comments_before(tgt_name, src_created, cursor)
+		create_tmp_comments_after(tgt_name, src_created, cursor)
 
 		print("counting comments before by source members...")
-		sub_cursor.execute('''
-			SELECT COUNT(*) FROM
-				(SELECT com.author_fullname
-				FROM _tmp_commenters_before AS com
-				LEFT JOIN _tmp_members AS mem USING (author_fullname)
-				WHERE mem.author_fullname IS NOT NULL) AS t
+		cursor.execute('''
+			SELECT COUNT(*)
+			FROM _tmp_comments_before AS com
+			WHERE com.author_fullname IN (
+				SELECT author_fullname FROM _tmp_members
+			)
 		''')
-		n_comments_by_src_memb_before = sub_cursor.fetchone()[0]
+		n_comments_by_src_memb_before = cursor.fetchone()[0]
 
 		print("counting comments after by source members...")
-		sub_cursor.execute('''
-			SELECT COUNT(*) FROM
-				(SELECT com.author_fullname
-				FROM _tmp_commenters_after AS com
-				LEFT JOIN _tmp_members AS mem USING (author_fullname)
-				WHERE mem.author_fullname IS NOT NULL) AS t
+		cursor.execute('''
+			SELECT COUNT(*)
+			FROM _tmp_comments_after AS com
+			WHERE com.author_fullname IN (
+				SELECT author_fullname FROM _tmp_members
+			)
 		''')
-		n_comments_by_src_memb_after = sub_cursor.fetchone()[0]
+		n_comments_by_src_memb_after = cursor.fetchone()[0]
 		print(n_comments_by_src_memb_after)
 		
 		if (n_comments_by_src_memb_before > 0):
@@ -138,9 +134,9 @@ for (src_id, src_author, src_created, src_subreddit_name, tgt_name) in cursor:
 		else:
 			before_after_ratio = n_comments_by_src_memb_after
 
-		sub_cursor.execute("DROP TABLE _tmp_members")
-		sub_cursor.execute("DROP TABLE _tmp_commenters_before")
-		sub_cursor.execute("DROP TABLE _tmp_commenters_after")
+		cursor.execute("DROP TABLE _tmp_members")
+		cursor.execute("DROP TABLE _tmp_comments_before")
+		cursor.execute("DROP TABLE _tmp_comments_after")
 
 		print("n_comments_by_src_memb_before: " + str(n_comments_by_src_memb_before))
 		print("n_comments_by_src_memb_after: " + str(n_comments_by_src_memb_after))
@@ -159,7 +155,7 @@ for (src_id, src_author, src_created, src_subreddit_name, tgt_name) in cursor:
 				n_comments_by_src_memb_before,
 				n_comments_by_src_memb_after,
 				before_after_ratio)
-			sub_cursor.execute("INSERT INTO mobilizations VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", mobilization_data)
+			cursor.execute("INSERT INTO mobilizations VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", mobilization_data)
 
 	if n == 100000:
 		print(str(n) + " crossposts analyzed, " + str(n_mob) +  " mobilizations found")
