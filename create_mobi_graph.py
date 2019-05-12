@@ -85,15 +85,15 @@ for comment in comments_on_target_post:
 		graph.add_edge(v, parent_vertex)
 
 #hiding all the isolated nodes with no neighbours
-#for v in graph.vertices():
-#	if v.in_degree() + v.out_degree() == 0:
-#		vertex_visible[v] = False
-#	else:
-#		vertex_visible[v] = True
-#graph.set_vertex_filter(graph.vertex_properties["visible"])
+for v in graph.vertices():
+	if v.in_degree() + v.out_degree() == 0:
+		vertex_visible[v] = False
+	else:
+		vertex_visible[v] = True
+graph.set_vertex_filter(graph.vertex_properties["visible"])
 
 #largest connected subgraph
-graph.set_vertex_filter(label_largest_component(graph, directed = False))
+#graph.set_vertex_filter(label_largest_component(graph, directed = False))
 
 print("visualizing graph...")
 pos = sfdp_layout(graph)
