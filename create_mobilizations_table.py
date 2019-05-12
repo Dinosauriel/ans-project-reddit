@@ -95,19 +95,19 @@ for src_submission in crossposts:
 	if tgt_submission is not None:
 		(tgt_id, tgt_subreddit_name, tgt_author, tgt_num_comments) = tgt_submission
 
-		if tgt_num_comments <= 100:
-			print("target has comments <= 100, skipping!")
+		if tgt_num_comments <= 50:
+			print("target has comments <= 50, skipping!")
 			continue
 		print("+++++++++++++++++++++++++++++++")
 
 		print("creating temporary tables...")
 		create_tmp_members(src_subreddit_name, tgt_subreddit_name, src_created, cursor)
-
 		cursor.execute("SELECT COUNT(*) FROM _tmp_members")
-		print("src community has " + str(cursor.fetchone()) + " members")
-
+		print("members table created; src community has " + str(cursor.fetchone()[0]) + " members")
 		create_tmp_comments_before(tgt_name, src_created, cursor)
+		print("comments_before table created")
 		create_tmp_comments_after(tgt_name, src_created, cursor)
+		print("comments_after table created")
 
 		print("counting comments before by source members...")
 		cursor.execute('''
@@ -128,10 +128,9 @@ for src_submission in crossposts:
 			)
 		''')
 		n_comments_by_src_memb_after = cursor.fetchone()[0]
-		print(n_comments_by_src_memb_after)
 		
 		if (n_comments_by_src_memb_before > 0):
-			before_after_ratio = (n_comments_by_src_memb_after + n_comments_by_src_memb_before) / n_comments_by_src_memb_before
+			before_after_ratio = n_comments_by_src_memb_after / n_comments_by_src_memb_before
 		else:
 			before_after_ratio = n_comments_by_src_memb_after
 
